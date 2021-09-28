@@ -1,0 +1,4 @@
+OBYmlPath: /Users/lwk/Desktop/mkdocs.yml
+OBTimePath: /Users/lwk/oceanbase/docs/time.txt
+BaseUrl: http://47.243.29.16/data/
+server.port: 8082
