@@ -32,16 +32,14 @@ public class YamlToJson {
 
     @RequestMapping("metaJson")
     @ResponseBody
-    public FNode metaJson() throws FileNotFoundException {
-        Yaml yaml = new Yaml();
-        java.util.Map<String, Object> obj = (java.util.Map<String, Object>) yaml.load(getYml(OBYmlPath));
-        String res = new Gson().toJson(obj);
-        JsonElement e = p.parse(res);
-        FNode fNode = new FNode();
-        fNode.setTitle("OceanBase数据库文档");
-        fNode.setDescription("OceanBase数据库文档");
-        createMetaJson(e,fNode);
-        return fNode;
+    public MainJson metaJson() throws FileNotFoundException {
+
+        MainJson mainJson = new MainJson();
+        mainJson.setTarget("cean_base_open_cn");
+        mainJson.setLanguage("zh-CN");
+        createMetaJson(mainJson);
+
+        return mainJson;
     }
 
     @RequestMapping("mainJson")
@@ -52,12 +50,49 @@ public class YamlToJson {
         mainJson.setTarget("cean_base_open_cn");
         mainJson.setLanguage("zh-CN");
         createMainJson(mainJson);
+
         return mainJson;
 
     }
 
-    private void createMetaJson(JsonElement e, FNode fNode)
+    private void createMetaJson(MainJson mainJson){
+
+        List<Product> productList = new ArrayList<>();
+        mainJson.setProductList(productList);
+        Product product = new Product();
+        productList.add(product);
+        product.setTitle("OceanBase数据库文档");
+        Yaml yaml = new Yaml();
+        java.util.Map<String, Object> obj = (java.util.Map<String, Object>) yaml.load(getYml(OBYmlPath));
+        String res = new Gson().toJson(obj);
+        JsonElement e = p.parse(res);
+        FNode fNode = new FNode();
+        fNode.setTitle("OceanBase数据库文档");
+        fNode.setDescription("OceanBase数据库文档");
+        createFNode(e,fNode);
+        product.setMapList(getMapMetaList(fNode));
+
+    }
+
+    private void createMainJson(MainJson mainJson)
     {
+
+        List<Product> productList = new ArrayList<>();
+        mainJson.setProductList(productList);
+        Product product = new Product();
+        productList.add(product);
+        product.setTitle("OceanBase数据库文档");
+        Yaml yaml = new Yaml();
+        java.util.Map<String, Object> obj = (java.util.Map<String, Object>) yaml.load(getYml(OBYmlPath));
+        String res = new Gson().toJson(obj);
+        JsonElement e = p.parse(res);
+        product.setMapList(getMapMainList(e));
+
+    }
+
+    private void createFNode(JsonElement e, FNode fNode)
+    {
+
         if (e.isJsonNull())
         {
             return;
@@ -79,7 +114,7 @@ public class YamlToJson {
                             newNode.setTitle(en.getKey());
                             newNode.setDescription(en.getKey());
                             fNode.getDocList().add(newNode);
-                            createMetaJson(en.getValue(),newNode);
+                            createFNode(en.getValue(),newNode);
                         }else {
                             SNode sNode = new SNode();
                             sNode.setTitle(en.getKey());
@@ -99,12 +134,14 @@ public class YamlToJson {
             Set<java.util.Map.Entry<String, JsonElement>> es = e.getAsJsonObject().entrySet();
             for (java.util.Map.Entry<String, JsonElement> en : es)
             {
-                createMetaJson(en.getValue(),fNode);
+                createFNode(en.getValue(),fNode);
             }
         }
+
     }
 
     private String getYml(String OBYmlPath) {
+
         boolean flag = false;
         File file = new File(OBYmlPath);
         BufferedReader reader = null;
@@ -136,28 +173,16 @@ public class YamlToJson {
             }
         }
         return null;
+
     }
 
-    private void createMainJson(MainJson mainJson)
+    private List<Map> getMapMainList(JsonElement e)
     {
-        List<Product> productList = new ArrayList<>();
-        mainJson.setProductList(productList);
-        Product product = new Product();
-        productList.add(product);
-        product.setTitle("OceanBase数据库文档");
-        Yaml yaml = new Yaml();
-        java.util.Map<String, Object> obj = (java.util.Map<String, Object>) yaml.load(getYml(OBYmlPath));
-        String res = new Gson().toJson(obj);
-        JsonElement e = p.parse(res);
-        product.setMapList(getMapList(e));
-    }
 
-    private List<Map> getMapList(JsonElement e)
-    {
         FNode fNode = new FNode();
         fNode.setTitle("OceanBase数据库文档");
         fNode.setDescription("OceanBase数据库文档");
-        createMetaJson(e,fNode);
+        createFNode(e,fNode);
         List<Map> mapList = new ArrayList<>();
 
         if (e.isJsonNull())
@@ -192,7 +217,7 @@ public class YamlToJson {
                                 map.setVersionList(versionList);
                                 Version version = new Version();
                                 versionList.add(version);
-                                List<SNode> docList = new ArrayList<>();
+                                List<Object> docList = new ArrayList<>();
                                 version.setDocList(docList);
                                 version.setTitle(firstNode.getKey());
                                 version.setVersion("0.0.1");
@@ -226,6 +251,35 @@ public class YamlToJson {
             }
         }
         return mapList;
+
+    }
+
+    private List<Map> getMapMetaList(FNode fNode)
+    {
+
+        List<Map> mapList = new ArrayList<>();
+        List<Object> list = fNode.getDocList();
+        for (Object o:list) {
+            if (o instanceof FNode)
+            {
+                FNode fNode1 = (FNode) o;
+                Map map = new Map();
+                map.setTitle(fNode1.getTitle());
+                map.setProduct("OceanBase开源部");
+                map.setDescription(fNode1.getDescription());
+                List<Version> versionList = new ArrayList<>();
+                map.setVersionList(versionList);
+                Version version = new Version();
+                versionList.add(version);
+                //List<SNode> docList = new ArrayList<>();
+                version.setDocList(fNode1.getDocList());
+                version.setTitle(fNode1.getTitle());
+                version.setVersion("0.0.1");
+                mapList.add(map);
+            }
+        }
+        return mapList;
+
     }
 
     /**
@@ -236,6 +290,7 @@ public class YamlToJson {
      */
     private String getPath(FNode fNode,String key)
     {
+
         if (fNode.getDocList().size() > 0) {
             List<Object> objs = fNode.getDocList();
             Queue nodes = new LinkedList<>();
@@ -262,10 +317,12 @@ public class YamlToJson {
             }
         }
         return null;
+
     }
 
     private String getFNodePath(FNode fNode,String key)
     {
+
         if (fNode.getDocList().size() > 0) {
             List<Object> objs = fNode.getDocList();
             Queue nodes = new LinkedList<>();
@@ -285,6 +342,7 @@ public class YamlToJson {
             }
         }
         return null;
+
     }
 
     private class MainJson{
@@ -327,6 +385,7 @@ public class YamlToJson {
                     ", productList=" + productList +
                     '}';
         }
+
     }
 
     private class Product{
@@ -358,6 +417,7 @@ public class YamlToJson {
                     ", mapList=" + mapList +
                     '}';
         }
+
     }
 
     private class Map{
@@ -411,6 +471,7 @@ public class YamlToJson {
                     ", versionList=" + versionList +
                     '}';
         }
+
     }
 
     private class Version{
@@ -423,7 +484,7 @@ public class YamlToJson {
 
         private String title;
 
-        private List<SNode> docList;
+        private List<Object> docList;
 
         public String getId() {
             return id;
@@ -457,11 +518,11 @@ public class YamlToJson {
             this.title = title;
         }
 
-        public List<SNode> getDocList() {
+        public List<Object> getDocList() {
             return docList;
         }
 
-        public void setDocList(List<SNode> docList) {
+        public void setDocList(List<Object> docList) {
             this.docList = docList;
         }
 
@@ -475,6 +536,7 @@ public class YamlToJson {
                     ", docList=" + docList +
                     '}';
         }
+
     }
 
     private class FNode{
@@ -517,6 +579,7 @@ public class YamlToJson {
                     ", docList=" + docList +
                     '}';
         }
+
     }
 
     private class SNode{
@@ -647,6 +710,7 @@ public class YamlToJson {
                     ", modifyTime=" + modifyTime +
                     '}';
         }
+        
     }
 
 }
